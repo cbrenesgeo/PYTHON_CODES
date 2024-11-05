@@ -1,0 +1,48 @@
+# Corta un raster usando una mascara de poligono
+import os
+import geopandas as gpd
+import rasterio
+from rasterio.mask import mask
+from rasterio.transform import from_origin
+from pyproj import Proj, transform
+import numpy as np
+
+# Directorios de entrada y salida
+poligonos_gpkg = r'E:\UAC\2023\CEPAL\3_OUTPUTS\FLOOD\CLIPS\LIMS'
+raster_entrada = r'E:\UAC\2023\CEPAL\2_PROCESOS\NIVEL_MAR\recalculo\DEM_RCLSS_EXPO.tif'
+directorio_salida = r'E:\UAC\2023\CEPAL\3_OUTPUTS\NIVEL_MAR\clips'
+
+# Define el SRID del raster
+raster_srid = 32616
+
+archivos_gpkg = [os.path.join(poligonos_gpkg, archivo) for archivo in os.listdir(poligonos_gpkg) if archivo.endswith('.gpkg')]
+
+# Abre el archivo raster de entrada
+with rasterio.open(raster_entrada) as src:
+    for archivo_gpkg in archivos_gpkg:
+        # Lee el polígono desde el GeoPackage
+        gdf = gpd.read_file(archivo_gpkg)
+
+        # Reproyecta el polígono al mismo SRID que el raster
+        gdf = gdf.to_crs(src.crs)
+
+        # Genera el nombre de archivo de salida
+        nombre_salida = os.path.splitext(os.path.basename(archivo_gpkg))[0] + "_flood.tif"
+        ruta_salida = os.path.join(directorio_salida, nombre_salida)
+
+        # Corta el raster usando el polígono
+        out_image, out_transform = mask(src, gdf.geometry, crop=True, nodata=np.nan)
+
+        # Obtiene la metainformación del raster de entrada
+        out_meta = src.meta.copy()
+        out_meta.update({"driver": "GTiff",
+                         "height": out_image.shape[1],
+                         "width": out_image.shape[2],
+                         "transform": out_transform,
+                         "crs": src.crs})
+
+        # Escribe el raster de salida
+        with rasterio.open(ruta_salida, "w", **out_meta) as dest:
+            dest.write(out_image)
+
+print("Proceso completado")
