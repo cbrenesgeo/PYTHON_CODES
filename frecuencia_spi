@@ -1,0 +1,47 @@
+#Indice stadarizado precipitación 
+#Cuenta la frecuencia de valores que superan cierto umbral de indice,  el resultado es un mapa con el conteo.
+import netCDF4 as nc
+import numpy as np
+import matplotlib.pyplot as plt
+import rasterio
+from rasterio.transform import from_origin
+
+# Abre el archivo NetCDF
+archivo_netcdf = nc.Dataset('E:\\UAC\\2023\\CEPAL\\1_INPUTS\\SEQUIA\\spei_global-spei-ensemble-simulations_historical_H_WFD_HIST_1960_1999_12_308473.nc', 'r')
+archivo_netcdf = nc.Dataset('E:\\UAC\\2023\\CEPAL\\1_INPUTS\\SEQUIA\\netcdf\\spei_global-spei-ensemble-simulations_future_2040_2079_H_IPSL_45_12_308475.nc', 'r')
+
+
+# Lee la variable SPIE y obtén sus dimensiones
+spie = archivo_netcdf.variables['spie'][:]
+años, filas, columnas = spie.shape
+
+# Crea una matriz para contar la frecuencia de valores menores o iguales a -1
+frecuencia = np.zeros((filas, columnas), dtype=int)
+
+# Itera a través de cada año y cuenta los valores menores o iguales a -1
+for año in range(años):
+    valores_año = spie[año, :, :]
+    frecuencia += (valores_año <= -1)
+
+# Crea el mapa de frecuencia
+plt.figure(figsize=(10, 8))
+plt.imshow(frecuencia, cmap='viridis', extent=[0, columnas, 0, filas])
+plt.colorbar(label='Frecuencia')
+plt.title('Frecuencia de SPIE <= -1 por año')
+plt.xlabel('Columnas')
+plt.ylabel('Filas')
+plt.show()
+
+origen_x = -95  # Coordenada X del origen
+origen_y = 25  # Coordenada Y del origen
+resolucion_x = 0.5  # Resolución en X
+resolucion_y = 0.5  # Resolución en Y (puede ser negativa)
+transformacion = from_origin(origen_x, origen_y, resolucion_x, resolucion_y)
+
+
+with rasterio.open('E:\\UAC\\2023\\CEPAL\\1_INPUTS\\SEQUIA\\netcdf\\mapa_frecuencia.tif', 'w', driver='GTiff', height=filas, width=columnas, count=1, dtype='int32', crs='+proj=latlong', transform=transformacion) as dst:
+    dst.write(frecuencia, 1)
+
+
+# Cierra el archivo NetCDF
+archivo_netcdf.close()
