@@ -1,0 +1,15 @@
+# Importa archivos WKT de gran volumen directamente a una GKGP
+# Este ejemplo muestra el caso de una WKT de footprints de google convertido a GPGK
+import geopandas as gpd
+
+# Ruta al archivo WKT
+archivo_wkt = r'E:\UAC\2023\CEPAL\1_INPUTS\Susceptibilidad_expansión_mar\8f7_buildings.csv'
+
+# Lee el archivo WKT en un DataFrame de GeoPandas
+gdf = gpd.read_file(archivo_wkt, GEOM_POSSIBLE_NAMES="geometry", KEEP_GEOM_COLUMNS="NO")
+
+# Ruta para guardar el archivo GeoPackage
+archivo_gpkg = r'E:\UAC\2023\CEPAL\1_INPUTS\Susceptibilidad_expansión_mar\8f7_buildings.gpkg'
+
+# Guarda el DataFrame en un archivo GeoPackage
+gdf.to_file(archivo_gpkg, driver='GPKG')
